@@ -1,0 +1,116 @@
+---
+title: "Reproducible Research Course Project 1"
+author: "Troy Huffman"
+date: "2/9/2022"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r load-data}
+activity <- read.csv("activity.csv",header=T)
+```
+
+```{r mean-total-number-steps-day}
+tot_step_day <- aggregate(steps ~ date, data = activity, FUN = sum, na.rm = TRUE)
+head(tot_step_day)
+hist(tot_step_day$steps, 
+     col="blue", 
+     xlab = "Steps", 
+     ylab = "Frequency",
+     main = "Total Number Of Steps Taken Each day")
+print_mean_step <-"Mean steps (no missing values replaced):"
+print_mean_step
+tot_step_day_mean <- mean(tot_step_day$steps)
+tot_step_day_mean
+print_median_step <-"Median steps (no missing values replaced):"
+print_median_step
+tot_step_day_median <- median(tot_step_day$steps)
+tot_step_day_median
+```
+
+```{r average-daily-activity}
+#total steps over 5 minutes
+tot_int <- aggregate(steps ~ interval, data = activity, FUN = mean, na.rm = TRUE)
+
+plot(tot_int$interval, tot_int$steps, 
+     type = "l", lwd = 2,
+     xlab = "5 Minute Intervals", 
+     ylab = "Average Steps Taken Across All Days",
+     main = "Average Daily Activity Pattern")
+
+max_step <- tot_int$interval[which.max(tot_int$steps)]
+print_max_step <-"Interval that contains the maximum number of steps:"
+print_max_step
+max_step
+```
+
+```{r inputting-missing-values}
+print_missing <- "TRUE represents the total number of NA values"
+print_missing
+table(is.na(activity))
+
+activity2 <- activity
+nas <- is.na(activity2$steps)
+avg_interval <- tapply(activity2$steps, activity2$interval, mean, na.rm=TRUE, simplify = TRUE)
+activity2$steps[nas] <- avg_interval[as.character(activity2$interval[nas])]
+
+tot_steps_day_new<- aggregate(steps ~ date, activity2, FUN=sum)
+
+par(mfrow=c(1,2))
+
+#Histogram after imputing mean for NA values
+hist(tot_steps_day_new$steps, 
+     col="blue",
+     xlab = "Steps", 
+     ylab = "Frequency",
+     main = "Total Number Of Steps Taken Each day \n (mean replace missing values)",
+     cex.main = 0.7)
+
+print_mean_step_new <-"Mean steps (mean replace missing values):"
+print_mean_step_new
+tot_step_day_mean_new <- mean(tot_steps_day_new$steps)
+tot_step_day_mean_new
+print_mean_step
+tot_step_day_mean
+diff_mean_step <-"Difference in mean steps:"
+diff_mean_step_val <- tot_step_day_mean_new - tot_step_day_mean
+diff_mean_step
+diff_mean_step_val
+print_median_step_new <-"Median steps (mean replace missing values):"
+print_median_step_new
+tot_step_day_median_new <- median(tot_steps_day_new$steps)
+tot_step_day_median_new
+print_median_step
+tot_step_day_median
+diff_median_step <-"Difference in median steps:"
+diff_median_step_val <- tot_step_day_median_new - tot_step_day_median
+diff_median_step
+diff_median_step_val
+```
+
+```{r differences-activity-patterns-weekdays-weekends}
+library(chron)
+library(ggplot2)
+
+activity2$dayofweek <- ifelse(is.weekend(tot_steps_day_new$date), "weekend", "weekday")
+
+meaninterval_new<- aggregate(steps ~ interval + dayofweek, activity2, FUN=mean)
+
+ggplot(meaninterval_new, aes(x=interval, y=steps)) + 
+  geom_line(color="blue", size=1) + 
+  facet_wrap(~dayofweek, nrow=2) +
+  labs(x="\nInterval", y="\nNumber of steps")
+```
+
